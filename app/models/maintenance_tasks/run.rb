@@ -70,9 +70,14 @@ module MaintenanceTasks
 
     scope :last_completed_per_task, -> do
       subquery = completed
-                   .select('task_name, MAX(ended_at) AS latest_ended_at')
-                   .group(:task_name)
-      joins("INNER JOIN (#{subquery.to_sql}) latest_runs ON latest_runs.task_name = maintenance_tasks_runs.task_name AND latest_runs.latest_ended_at = maintenance_tasks_runs.ended_at")
+        .select("task_name, MAX(ended_at) AS latest_ended_at")
+        .group(:task_name)
+      join_sql = <<~SQL.squish
+        INNER JOIN (#{subquery.to_sql}) latest_runs
+        ON latest_runs.task_name = maintenance_tasks_runs.task_name
+        AND latest_runs.latest_ended_at = maintenance_tasks_runs.ended_at
+      SQL
+      joins(join_sql)
     end
 
     validates_with RunStatusValidator, on: :update
